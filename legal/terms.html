@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#F4F6FA" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#0B1220" media="(prefers-color-scheme: dark)">
+    <title>Terms of Service · Concentration</title>
+    <script>
+        (function () {
+            try {
+                var saved = localStorage.getItem("theme");
+                var dark = saved === "dark" || (!saved && window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches);
+                if (dark) document.documentElement.setAttribute("data-theme", "dark");
+            } catch (e) {}
+        })();
+    </script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            color-scheme: light dark;
+            --bg: #F4F6FA;
+            --surface: #FFFFFF;
+            --text: #0F172A;
+            --muted: #64748B;
+            --primary: #E8834F;
+            --border: rgba(15, 23, 42, 0.08);
+            --shadow: 0 4px 20px rgba(15, 23, 42, 0.08);
+        }
+        :root[data-theme="dark"] {
+            --bg: #0B1220;
+            --surface: #121A2B;
+            --text: #E6ECF3;
+            --muted: #94A3B8;
+            --border: rgba(255, 255, 255, 0.08);
+            --shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            padding: 160px 20px 60px;
+            display: flex;
+            justify-content: center;
+        }
+        .site-logo {
+            position: fixed;
+            top: 16px;
+            left: 16px;
+            z-index: 100;
+            display: block;
+            width: 240px;
+            height: 128px;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+            background: var(--surface);
+        }
+        .site-logo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        .container { max-width: 720px; width: 100%; }
+        h1 { font-size: 32px; margin-bottom: 6px; letter-spacing: -0.5px; }
+        .updated { color: var(--muted); font-size: 13px; margin-bottom: 28px; }
+        h2 { font-size: 18px; margin: 28px 0 10px; }
+        p, li { line-height: 1.6; font-size: 15px; margin-bottom: 10px; }
+        ul { padding-left: 20px; }
+        a { color: var(--primary); }
+        .back { display: inline-block; margin-top: 32px; color: var(--muted); text-decoration: none; }
+        .back:hover { color: var(--text); }
+        code { background: var(--surface); padding: 2px 6px; border-radius: 4px; border: 1px solid var(--border); font-size: 13px; }
+        @media (max-width: 520px) {
+            .site-logo { width: 160px; height: 88px; }
+            body { padding-top: 120px; }
+        }
+    </style>
+</head>
+<body>
+    <a class="site-logo" href="https://chrisclark.net" aria-label="Chris Clark home">
+        <img src="/static/CC_Mountain.jpg" alt="" width="320" height="175">
+    </a>
+    <div class="container">
+        <h1>Terms of Service</h1>
+        <p class="updated">Last updated: April 26, 2026</p>
+
+        <p>These Terms of Service ("Terms") apply to your use of Concentration, a free memory card game available at <a href="https://concentration.chrisclark.net">concentration.chrisclark.net</a>.</p>
+
+        <h2>1. License and use</h2>
+        <p>Concentration is provided as-is for your personal, non-commercial use. You may play and enjoy the game free of charge. You may not:</p>
+        <ul>
+            <li>Reverse engineer, decompile, or extract the source code</li>
+            <li>Sell, rent, lease, or otherwise monetize the game or any part of it</li>
+            <li>Use automated tools, bots, or scripts to manipulate gameplay or server behavior</li>
+            <li>Remove or alter any copyright, trademark, or attribution notices</li>
+        </ul>
+
+        <h2>2. Disclaimer of warranties</h2>
+        <p>The game is provided "as is" without warranty of any kind, express or implied. I do not warrant that it will be uninterrupted, error-free, or free of viruses or harmful components. Your use is at your own risk.</p>
+
+        <h2>3. Limitation of liability</h2>
+        <p>To the maximum extent permitted by law, I am not liable for any indirect, incidental, special, consequential, or punitive damages arising from your use of Concentration, including loss of data, profit, or enjoyment.</p>
+
+        <h2>4. Your content and data</h2>
+        <p>Your gameplay stats and preferences are stored on your device and are yours. I make no claim to ownership of them. By signing in to sync your data, you agree to store gameplay records in your account on Azure Table Storage, associated with your Google account. You may request deletion of this data at any time by emailing <a href="mailto:admin@chrisclark.net">admin@chrisclark.net</a>.</p>
+
+        <h2>5. Third-party links</h2>
+        <p>Concentration may contain links to external websites. I am not responsible for their content, privacy practices, or availability. Use at your own discretion.</p>
+
+        <h2>6. Changes to these terms</h2>
+        <p>I may update these Terms at any time. The "Last updated" date above will reflect the latest version. Continued use of the game after changes means you accept the updated Terms.</p>
+
+        <h2>7. Governing law</h2>
+        <p>These Terms are governed by the laws of the State of Colorado, without regard to its conflict-of-law principles. Any legal action must be brought in the state or federal courts located in Colorado.</p>
+
+        <h2>8. Contact</h2>
+        <p>For questions about these Terms or the game, contact <a href="mailto:admin@chrisclark.net">admin@chrisclark.net</a>.</p>
+
+        <a class="back" href="/">← Back to the game</a>
+    </div>
+</body>
+</html>

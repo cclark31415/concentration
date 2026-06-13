@@ -1,0 +1,1551 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#F4F6FA" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#0B1220" media="(prefers-color-scheme: dark)">
+    <title>Concentration</title>
+    <meta name="description" content="A classic memory matching card game.">
+    <script>
+        (function () {
+            try {
+                var saved = localStorage.getItem("theme");
+                var dark = saved === "dark" || (!saved && window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches);
+                if (dark) document.documentElement.setAttribute("data-theme", "dark");
+            } catch (e) {}
+        })();
+    </script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            color-scheme: light dark;
+            --bg: #F4F6FA;
+            --surface: #FFFFFF;
+            --surface-muted: #EEF1F7;
+            --text: #0F172A;
+            --muted: #64748B;
+            --primary: #E8834F;
+            --primary-hover: #D4703C;
+            --secondary: #3B82F6;
+            --border: rgba(15, 23, 42, 0.08);
+            --shadow: 0 4px 20px rgba(15, 23, 42, 0.08);
+            --shadow-strong: 0 8px 30px rgba(15, 23, 42, 0.14);
+
+            --card-back: #1E3A8A;
+            --card-back-accent: #2C52B8;
+            --card-border: #0B1D4F;
+        }
+
+        :root[data-theme="dark"] {
+            --bg: #0B1220;
+            --surface: #121A2B;
+            --surface-muted: #1A2336;
+            --text: #E6ECF3;
+            --muted: #94A3B8;
+            --border: rgba(255, 255, 255, 0.08);
+            --shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            --shadow-strong: 0 8px 30px rgba(0, 0, 0, 0.45);
+
+            --card-back: #0F1E4D;
+            --card-back-accent: #1E3A8A;
+            --card-border: #060E2D;
+        }
+
+        html, body {
+            height: 100%;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: var(--bg);
+            min-height: 100vh;
+            color: var(--text);
+            padding: 160px 16px 48px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            transition: background 0.2s ease, color 0.2s ease;
+        }
+
+        .site-logo {
+            position: fixed;
+            top: 16px;
+            left: 16px;
+            z-index: 100;
+            display: block;
+            width: 240px;
+            height: 128px;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+            background: var(--surface);
+        }
+
+        .site-logo img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+
+        @media (max-width: 520px) {
+            .site-logo { width: 160px; height: 88px; }
+        }
+
+        .theme-toggle {
+            position: fixed;
+            top: 16px;
+            right: 16px;
+            z-index: 100;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            color: var(--text);
+            cursor: pointer;
+            display: grid;
+            place-items: center;
+            box-shadow: var(--shadow);
+            transition: transform 0.15s ease;
+        }
+
+        .theme-toggle:hover { transform: translateY(-1px); }
+        .theme-toggle svg { width: 18px; height: 18px; }
+        .theme-toggle .icon-moon { display: none; }
+        :root[data-theme="dark"] .theme-toggle .icon-sun { display: none; }
+        :root[data-theme="dark"] .theme-toggle .icon-moon { display: inline-block; }
+
+        header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        header h1 {
+            font-size: 32px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }
+
+        header p {
+            color: var(--muted);
+            font-size: 14px;
+            margin-top: 4px;
+        }
+
+        .difficulty {
+            display: flex;
+            gap: 4px;
+            background: var(--surface-muted);
+            border: 1px solid var(--border);
+            padding: 4px;
+            border-radius: 999px;
+            margin-bottom: 14px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .difficulty button {
+            background: transparent;
+            color: var(--muted);
+            border: none;
+            padding: 6px 14px;
+            border-radius: 999px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.15s ease, color 0.15s ease;
+        }
+
+        .difficulty button:hover {
+            color: var(--text);
+        }
+
+        .difficulty button.active {
+            background: var(--primary);
+            color: #fff;
+            box-shadow: 0 2px 6px rgba(232, 131, 79, 0.35);
+        }
+
+        .status {
+            display: flex;
+            gap: 24px;
+            align-items: center;
+            margin-bottom: 20px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            padding: 10px 20px;
+            border-radius: 999px;
+            font-size: 14px;
+            font-weight: 500;
+            box-shadow: var(--shadow);
+        }
+
+        .status .label {
+            color: var(--muted);
+            font-size: 11px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            margin-right: 6px;
+        }
+
+        .new-game {
+            background: var(--primary);
+            color: #fff;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 999px;
+            font-weight: 600;
+            font-size: 13px;
+            cursor: pointer;
+            transition: transform 0.15s ease, background 0.15s ease;
+        }
+
+        .new-game:hover {
+            transform: translateY(-1px);
+            background: var(--primary-hover);
+        }
+
+        .new-game:active {
+            transform: translateY(0);
+        }
+
+        .board {
+            --cols: 6;
+            --card-gap: 10px;
+            --card-target: 80px;
+            display: grid;
+            grid-template-columns: repeat(var(--cols), minmax(0, 1fr));
+            gap: var(--card-gap);
+            width: 100%;
+            max-width: calc(var(--cols) * var(--card-target) + (var(--cols) - 1) * var(--card-gap));
+        }
+
+        .board.cols-10,
+        .board.cols-12 {
+            --card-gap: 6px;
+            --card-target: 64px;
+        }
+
+        .board.cols-8 {
+            --card-gap: 8px;
+        }
+
+        .card {
+            aspect-ratio: 5 / 7;
+            perspective: 800px;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .card-inner {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            transform-style: preserve-3d;
+            transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .card.flipped .card-inner {
+            transform: rotateY(180deg);
+        }
+
+        .card.matched .card-inner {
+            transform: rotateY(180deg);
+        }
+
+        .card.matched {
+            cursor: default;
+        }
+
+        .card-face {
+            position: absolute;
+            inset: 0;
+            border-radius: 10px;
+            backface-visibility: hidden;
+            -webkit-backface-visibility: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.25);
+            border: 2px solid var(--card-border);
+        }
+
+        /* Card back pattern uses percentage-based tiles so it scales with the
+           card. The card aspect ratio is 5:7, so to keep tiles visually square
+           the height-% must be width-% * 5/7. */
+        .card-back {
+            background-color: var(--card-back);
+            background-image:
+                linear-gradient(135deg, var(--card-back-accent) 25%, transparent 25%),
+                linear-gradient(225deg, var(--card-back-accent) 25%, transparent 25%),
+                linear-gradient(45deg, var(--card-back-accent) 25%, transparent 25%),
+                linear-gradient(315deg, var(--card-back-accent) 25%, transparent 25%);
+            background-position: 12.5% 0, 12.5% 0, 0 0, 0 0;
+            background-size: 25% 17.857%;
+            background-repeat: repeat;
+            overflow: hidden;
+            position: absolute;
+            inset: 0;
+        }
+
+        .board.cols-10 .card-back {
+            background-size: 33.333% 23.81%;
+            background-position: 16.667% 0, 16.667% 0, 0 0, 0 0;
+        }
+
+        .board.cols-12 .card-back {
+            background-size: 50% 35.714%;
+            background-position: 25% 0, 25% 0, 0 0, 0 0;
+        }
+
+        .card-back::before {
+            content: "";
+            position: absolute;
+            inset: 8%;
+            border: 1.5px solid rgba(255, 255, 255, 0.25);
+            border-radius: 4px;
+            pointer-events: none;
+        }
+
+        .board.cols-10 .card-back::before {
+            border-width: 1px;
+            inset: 6%;
+        }
+
+        .board.cols-12 .card-back::before {
+            /* Inner frame becomes visual noise on the densest grid */
+            display: none;
+        }
+
+        .card-back::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background-image: radial-gradient(circle at center, rgba(255, 255, 255, 0.18) 0 10%, transparent 11%);
+            background-size: 30% 21.428%;
+            background-position: center;
+            background-repeat: no-repeat;
+        }
+
+        .board.cols-12 .card-back::after { display: none; }
+
+        .card-front {
+            background: #ffffff;
+            color: #222;
+            font-size: clamp(18px, 6vw, 48px);
+            transform: rotateY(180deg);
+            line-height: 1;
+        }
+
+        .board.cols-10 .card-front { font-size: clamp(16px, 4.5vw, 34px); }
+        .board.cols-12 .card-front { font-size: clamp(14px, 3.8vw, 28px); }
+
+        .card.matched .card-face {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px var(--primary), 0 3px 10px rgba(0, 0, 0, 0.25);
+            animation: pop 0.4s ease;
+        }
+
+        @keyframes pop {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.06); }
+            100% { transform: scale(1); }
+        }
+
+        .win {
+            position: fixed;
+            inset: 0;
+            background: rgba(11, 18, 32, 0.75);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            z-index: 10;
+            backdrop-filter: blur(4px);
+        }
+
+        .win.show {
+            display: flex;
+        }
+
+        .win-card {
+            background: var(--surface);
+            color: var(--text);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 32px 28px;
+            max-width: 340px;
+            width: 100%;
+            text-align: center;
+            box-shadow: var(--shadow-strong);
+        }
+
+        .win-card h2 {
+            font-size: 28px;
+            margin-bottom: 8px;
+        }
+
+        .win-card p {
+            color: var(--muted);
+            margin-bottom: 20px;
+            font-size: 15px;
+        }
+
+        .win-card button {
+            background: var(--primary);
+            color: #fff;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 999px;
+            font-weight: 600;
+            font-size: 15px;
+            cursor: pointer;
+            width: 100%;
+            transition: background 0.15s ease;
+        }
+
+        .win-card button:hover {
+            background: var(--primary-hover);
+        }
+
+        footer {
+            margin-top: 32px;
+            color: var(--muted);
+            font-size: 12px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+
+        footer a {
+            color: inherit;
+        }
+
+        .footer-links {
+            display: flex;
+            gap: 14px;
+            align-items: center;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .tip-jar {
+            background: var(--surface);
+            color: var(--text);
+            border: 1px solid var(--border);
+            border-radius: 999px;
+            padding: 8px 14px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: transform 0.15s ease, border-color 0.15s ease;
+            position: relative;
+        }
+
+        .tip-jar:hover {
+            transform: translateY(-1px);
+            border-color: var(--primary);
+        }
+
+        .tip-jar[data-tooltip]::after {
+            content: attr(data-tooltip);
+            position: absolute;
+            bottom: calc(100% + 10px);
+            left: 50%;
+            transform: translateX(-50%) translateY(4px);
+            background: var(--surface);
+            color: var(--text);
+            font-size: 12px;
+            font-weight: 400;
+            line-height: 1.45;
+            text-align: center;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 10px 12px;
+            width: max-content;
+            max-width: 260px;
+            box-shadow: var(--shadow-strong);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.15s ease, transform 0.15s ease;
+            z-index: 200;
+        }
+
+        .tip-jar[data-tooltip]::before {
+            content: "";
+            position: absolute;
+            bottom: calc(100% + 4px);
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-left: 6px solid transparent;
+            border-right: 6px solid transparent;
+            border-top: 6px solid var(--border);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.15s ease;
+            z-index: 201;
+        }
+
+        .tip-jar[data-tooltip]:hover::after,
+        .tip-jar[data-tooltip]:focus-visible::after {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        .tip-jar[data-tooltip]:hover::before,
+        .tip-jar[data-tooltip]:focus-visible::before {
+            opacity: 1;
+        }
+
+        @media (hover: none) {
+            .tip-jar[data-tooltip]::after,
+            .tip-jar[data-tooltip]::before { display: none; }
+        }
+
+        .actions {
+            position: fixed;
+            top: 16px;
+            right: 16px;
+            z-index: 100;
+            display: flex;
+            gap: 8px;
+        }
+
+        .actions .theme-toggle,
+        .actions .stats-btn {
+            position: static;
+            top: auto;
+            right: auto;
+        }
+
+        .stats-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            color: var(--text);
+            cursor: pointer;
+            display: grid;
+            place-items: center;
+            box-shadow: var(--shadow);
+            transition: transform 0.15s ease;
+        }
+
+        .stats-btn:hover { transform: translateY(-1px); }
+        .stats-btn svg { width: 18px; height: 18px; }
+
+        .auth-btn {
+            height: 40px;
+            border-radius: 20px;
+            padding: 0 14px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            color: var(--text);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            box-shadow: var(--shadow);
+            font-size: 13px;
+            font-weight: 600;
+            transition: transform 0.15s ease, border-color 0.15s ease;
+        }
+
+        .auth-btn:hover { transform: translateY(-1px); border-color: var(--primary); }
+
+        .auth-label {
+            max-width: 160px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        @media (max-width: 560px) {
+            .auth-btn { padding: 0 8px 0 6px; }
+            .auth-btn.authed .auth-label { display: none; }
+            .auth-btn.authed { padding: 0; width: 40px; justify-content: center; }
+        }
+
+        .avatar {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary), var(--primary-hover));
+            color: #fff;
+            display: grid;
+            place-items: center;
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+        }
+
+        .auth-menu {
+            position: absolute;
+            top: 48px;
+            right: 0;
+            min-width: 220px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            box-shadow: var(--shadow-strong);
+            padding: 6px;
+            display: none;
+            z-index: 110;
+        }
+
+        .auth-menu.show { display: block; }
+
+        .auth-menu .meta {
+            padding: 10px 12px 8px;
+            border-bottom: 1px solid var(--border);
+            font-size: 12px;
+            color: var(--muted);
+            line-height: 1.4;
+        }
+
+        .auth-menu .meta .name { color: var(--text); font-weight: 600; font-size: 14px; margin-bottom: 2px; }
+
+        .auth-menu button {
+            width: 100%;
+            text-align: left;
+            background: transparent;
+            border: none;
+            padding: 10px 12px;
+            border-radius: 6px;
+            font-size: 13px;
+            cursor: pointer;
+            color: var(--text);
+        }
+
+        .auth-menu button:hover { background: var(--surface-muted); }
+
+        .provider-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            width: 100%;
+            padding: 12px 14px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            background: var(--surface);
+            color: var(--text);
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            transition: background 0.15s ease, transform 0.15s ease;
+        }
+
+        .provider-btn:hover { background: var(--surface-muted); transform: translateY(-1px); }
+        .provider-btn svg { width: 18px; height: 18px; }
+        .provider-list { display: flex; flex-direction: column; gap: 8px; margin: 8px 0 16px; }
+
+        .modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(11, 18, 32, 0.75);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            z-index: 200;
+            backdrop-filter: blur(4px);
+        }
+
+        .modal.show { display: flex; }
+
+        .modal-card {
+            background: var(--surface);
+            color: var(--text);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 24px;
+            max-width: 480px;
+            width: 100%;
+            max-height: calc(100vh - 40px);
+            overflow-y: auto;
+            box-shadow: var(--shadow-strong);
+        }
+
+        .modal-card h2 {
+            font-size: 22px;
+            margin-bottom: 14px;
+        }
+
+        .modal-card .disclaimer {
+            background: var(--surface-muted);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 10px 12px;
+            font-size: 12px;
+            color: var(--muted);
+            margin-bottom: 16px;
+            line-height: 1.45;
+        }
+
+        .stats-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+            margin-bottom: 18px;
+        }
+
+        .stats-table th {
+            text-align: left;
+            font-weight: 600;
+            color: var(--muted);
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 6px 4px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .stats-table td {
+            padding: 8px 4px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .stats-table td.num {
+            font-variant-numeric: tabular-nums;
+            text-align: right;
+        }
+
+        .stats-empty {
+            text-align: center;
+            color: var(--muted);
+            padding: 20px 0;
+            font-size: 14px;
+        }
+
+        .recent-heading {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+        }
+
+        .recent-list {
+            list-style: none;
+            padding: 0;
+            margin: 0 0 18px 0;
+        }
+
+        .recent-list li {
+            padding: 8px 0;
+            font-size: 13px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+        }
+
+        .recent-list li:last-child { border-bottom: none; }
+
+        .recent-list .when { color: var(--muted); font-size: 12px; }
+
+        .modal-actions {
+            display: flex;
+            gap: 8px;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 4px;
+        }
+
+        .btn {
+            padding: 10px 18px;
+            border-radius: 999px;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            border: 1px solid var(--border);
+            background: var(--surface-muted);
+            color: var(--text);
+            transition: background 0.15s ease, transform 0.15s ease;
+        }
+
+        .btn:hover { transform: translateY(-1px); }
+
+        .btn.primary {
+            background: var(--primary);
+            color: #fff;
+            border-color: transparent;
+        }
+
+        .btn.primary:hover { background: var(--primary-hover); }
+
+        .btn.danger {
+            color: #B91C1C;
+        }
+
+        :root[data-theme="dark"] .btn.danger { color: #FCA5A5; }
+
+        .email-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--surface-muted);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 10px 12px;
+            margin: 12px 0 16px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+        }
+
+        .email-row .email { flex: 1; word-break: break-all; }
+
+        .copy-btn {
+            background: transparent;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 4px 10px;
+            font-size: 12px;
+            cursor: pointer;
+            color: var(--text);
+            font-family: inherit;
+            transition: background 0.15s ease;
+        }
+
+        .copy-btn:hover { background: var(--surface); }
+        .copy-btn.copied { color: #2a7b3f; border-color: #2a7b3f; }
+        :root[data-theme="dark"] .copy-btn.copied { color: #6ee7b7; border-color: #6ee7b7; }
+
+        .cookie-banner {
+            position: fixed;
+            left: 16px;
+            right: 16px;
+            bottom: 16px;
+            z-index: 150;
+            background: var(--surface);
+            color: var(--text);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 14px 16px;
+            box-shadow: var(--shadow-strong);
+            display: none;
+            gap: 12px;
+            align-items: center;
+            flex-wrap: wrap;
+            max-width: 720px;
+            margin: 0 auto;
+            font-size: 13px;
+            line-height: 1.45;
+        }
+
+        .cookie-banner.show { display: flex; }
+
+        .cookie-banner p { flex: 1; min-width: 220px; margin: 0; }
+
+        .cookie-banner .cookie-actions { display: flex; gap: 8px; }
+
+        .cookie-banner a { color: var(--primary); text-decoration: underline; }
+    </style>
+</head>
+<body>
+    <a class="site-logo" href="https://chrisclark.net" aria-label="Chris Clark home">
+        <img src="/static/CC_Mountain.jpg" alt="" width="320" height="175">
+    </a>
+
+    <div class="actions" style="position: fixed; top: 16px; right: 16px;">
+        <div style="position: relative;">
+            <button class="auth-btn" id="auth-btn" type="button" hidden></button>
+            <div class="auth-menu" id="auth-menu" role="menu">
+                <div class="meta">
+                    <div class="name" id="menu-display-name"></div>
+                    <div id="menu-email"></div>
+                </div>
+                <button type="button" id="menu-signout">Sign out</button>
+            </div>
+        </div>
+        <button class="stats-btn" id="stats-btn" type="button" aria-label="Your stats" title="Your stats">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <line x1="6" y1="20" x2="6" y2="12"></line>
+                <line x1="12" y1="20" x2="12" y2="6"></line>
+                <line x1="18" y1="20" x2="18" y2="14"></line>
+                <line x1="3" y1="20" x2="21" y2="20"></line>
+            </svg>
+        </button>
+        <button class="theme-toggle" id="theme-toggle" type="button" aria-label="Toggle color theme" title="Toggle color theme">
+            <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <circle cx="12" cy="12" r="4"></circle>
+                <line x1="12" y1="2" x2="12" y2="5"></line>
+                <line x1="12" y1="19" x2="12" y2="22"></line>
+                <line x1="2" y1="12" x2="5" y2="12"></line>
+                <line x1="19" y1="12" x2="22" y2="12"></line>
+                <line x1="4.22" y1="4.22" x2="6.34" y2="6.34"></line>
+                <line x1="17.66" y1="17.66" x2="19.78" y2="19.78"></line>
+                <line x1="4.22" y1="19.78" x2="6.34" y2="17.66"></line>
+                <line x1="17.66" y1="6.34" x2="19.78" y2="4.22"></line>
+            </svg>
+            <svg class="icon-moon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+            </svg>
+        </button>
+    </div>
+
+    <header>
+        <h1>Concentration</h1>
+        <p>Flip two cards. Find the pairs.</p>
+    </header>
+
+    <div class="difficulty" id="difficulty" role="tablist" aria-label="Difficulty">
+        <button type="button" data-level="beginner" class="active" role="tab" aria-selected="true">Beginner</button>
+        <button type="button" data-level="intermediate" role="tab" aria-selected="false">Intermediate</button>
+        <button type="button" data-level="expert" role="tab" aria-selected="false">Expert</button>
+        <button type="button" data-level="wizard" role="tab" aria-selected="false">Wizard</button>
+    </div>
+
+    <div class="status">
+        <span><span class="label">Moves</span><span id="moves">0</span></span>
+        <span><span class="label">Matched</span><span id="matched">0</span>/<span id="total-pairs">18</span></span>
+        <button class="new-game" id="new-game">New game</button>
+    </div>
+
+    <div class="board" id="board" aria-label="Concentration game board"></div>
+
+    <div class="win" id="win" role="dialog" aria-modal="true" aria-labelledby="win-title">
+        <div class="win-card">
+            <h2 id="win-title">You won!</h2>
+            <p id="win-message">Completed in 0 moves.</p>
+            <button id="play-again">Play again</button>
+        </div>
+    </div>
+
+    <div class="modal" id="stats-modal" role="dialog" aria-modal="true" aria-labelledby="stats-title">
+        <div class="modal-card">
+            <h2 id="stats-title">Your stats</h2>
+            <p class="disclaimer">
+                Stats are saved in this browser only. They won't sync across devices or survive clearing your browser data. Account sign-in is coming soon.
+            </p>
+            <div id="stats-body"></div>
+            <div class="modal-actions">
+                <button type="button" class="btn danger" id="stats-clear">Clear stats</button>
+                <button type="button" class="btn" id="stats-close">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="tip-modal" role="dialog" aria-modal="true" aria-labelledby="tip-title">
+        <div class="modal-card">
+            <h2 id="tip-title">🥤 Buy me a Diet Pepsi</h2>
+            <p>I'm an independent developer building these in my spare time — tippers are welcome to suggest new games to build next!</p>
+            <p>Send a tip to the PayPal address below. To avoid PayPal's seller fee, please select <strong>Friends &amp; Family</strong> when sending.</p>
+            <div class="email-row">
+                <span class="email" id="tip-email">paypal@chrisclark.net</span>
+                <button type="button" class="copy-btn" id="tip-copy">Copy</button>
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="btn" id="tip-close">Maybe later</button>
+                <a class="btn primary" href="https://www.paypal.com/myaccount/transfer/homepage/pay" target="_blank" rel="noopener noreferrer">Open PayPal</a>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <button type="button" class="tip-jar" id="tip-jar-btn"
+                aria-label="Buy me a Diet Pepsi"
+                data-tooltip="I'm an independent developer — donors are welcome to suggest new games to build next.">
+            🥤 Buy me a Diet Pepsi
+        </button>
+        <div class="footer-links">
+            <a href="https://chrisclark.net">chrisclark.net</a>
+            <span aria-hidden="true">·</span>
+            <a href="/privacy">Privacy</a>
+            <span aria-hidden="true">·</span>
+            <a href="/terms">Terms</a>
+        </div>
+    </footer>
+
+    <div class="modal" id="signin-modal" role="dialog" aria-modal="true" aria-labelledby="signin-title">
+        <div class="modal-card">
+            <h2 id="signin-title">Sign in</h2>
+            <p class="disclaimer">Signing in saves your stats to the cloud so they sync across devices. I don't sell data or run ads. <a href="/privacy">Privacy policy</a>.</p>
+            <div class="provider-list" id="provider-list"></div>
+            <div class="modal-actions">
+                <button type="button" class="btn" id="signin-close">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="import-modal" role="dialog" aria-modal="true" aria-labelledby="import-title">
+        <div class="modal-card">
+            <h2 id="import-title">Import your guest stats?</h2>
+            <p>You have <strong id="import-count">0</strong> game(s) saved in this browser from before you signed in. Add them to your account?</p>
+            <div class="modal-actions">
+                <button type="button" class="btn" id="import-discard">Discard</button>
+                <button type="button" class="btn primary" id="import-accept">Import</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="cookie-banner" id="cookie-banner" role="dialog" aria-labelledby="cookie-title">
+        <p id="cookie-title">
+            This site uses a small number of cookies and local storage for essential functionality (theme, gameplay stats, session). I don't track you, run ads, or sell data. <a href="/privacy">Privacy policy</a>.
+        </p>
+        <div class="cookie-actions">
+            <button type="button" class="btn" id="cookie-essential">Essential only</button>
+            <button type="button" class="btn primary" id="cookie-accept">OK</button>
+        </div>
+    </div>
+
+    <script>
+        const EMOJI_POOL = [
+            "🍕","🎸","🚀","🦄","🐙","🌈","🎮","🏆","🎨","🍉",
+            "🦊","⚽","🐸","🌮","🎲","🍩","🐝","🌵","🎺","🍄",
+            "🐢","🦀","🍓","🪐","🐼","🌻","🎧","🍔","🦋","⛵",
+            "🐶","🐱","🐭","🐰","🐻","🐨","🐯","🦁","🐷","🐮",
+            "🐔","🐧","🦅","🦉","🐺","🐴","🐵","🐳","🐬","🐟",
+            "🍎","🍌","🍒","🍑","🍊","🥑","🍿","🧁","🍦","🍪",
+            "🎂","🍯","🥐","🥞","🌭","⭐","🌙","❄️","☀️","⛄",
+            "🌊","🌴","🌹","🍁","🌺","🔥","💎","🔑","⚓","🎈",
+            "🎁","🧸","🎯","🏀","🏈","🎳","🎱","🚗","✈️","🚁",
+            "🚢","💀","👻","🎃","👽","🤖","📷","⌚","🎤","🛸"
+        ];
+
+        const LEVELS = {
+            beginner:     { cols: 6,  pairs: 18 },
+            intermediate: { cols: 8,  pairs: 32 },
+            expert:       { cols: 10, pairs: 50 },
+            wizard:       { cols: 12, pairs: 72 }
+        };
+
+        const boardEl = document.getElementById("board");
+        const movesEl = document.getElementById("moves");
+        const matchedEl = document.getElementById("matched");
+        const totalPairsEl = document.getElementById("total-pairs");
+        const winEl = document.getElementById("win");
+        const winMessageEl = document.getElementById("win-message");
+        const newGameBtn = document.getElementById("new-game");
+        const playAgainBtn = document.getElementById("play-again");
+        const difficultyEl = document.getElementById("difficulty");
+
+        let me = null; // {authenticated, email, display_name, providers[], just_signed_in, is_new_user}
+
+        let currentLevel = "beginner";
+        let pairCount = LEVELS[currentLevel].pairs;
+        let firstCard = null;
+        let lockBoard = false;
+        let moves = 0;
+        let matched = 0;
+        let gameStartMs = null;
+
+        const GUEST_STATS_KEY = "concentration.guest_stats";
+        const GUEST_STATS_VERSION = 1;
+        const RECENT_LIMIT = 20;
+
+        function emptyLevelStats() {
+            return { games: 0, best_moves: null, best_duration_ms: null, total_moves: 0, total_duration_ms: 0 };
+        }
+
+        function loadGuestStats() {
+            try {
+                const raw = localStorage.getItem(GUEST_STATS_KEY);
+                if (!raw) return null;
+                const parsed = JSON.parse(raw);
+                if (parsed && parsed.version === GUEST_STATS_VERSION) return parsed;
+            } catch (e) {}
+            return null;
+        }
+
+        function newGuestStats() {
+            const stats = { version: GUEST_STATS_VERSION, totals_by_level: {}, recent: [] };
+            for (const level of Object.keys(LEVELS)) stats.totals_by_level[level] = emptyLevelStats();
+            return stats;
+        }
+
+        function saveGameToGuestStats(record) {
+            let stats = loadGuestStats() || newGuestStats();
+            for (const level of Object.keys(LEVELS)) {
+                if (!stats.totals_by_level[level]) stats.totals_by_level[level] = emptyLevelStats();
+            }
+            const lvl = stats.totals_by_level[record.level];
+            lvl.games += 1;
+            lvl.total_moves += record.moves;
+            lvl.total_duration_ms += record.duration_ms;
+            if (lvl.best_moves === null || record.moves < lvl.best_moves) lvl.best_moves = record.moves;
+            if (lvl.best_duration_ms === null || record.duration_ms < lvl.best_duration_ms) lvl.best_duration_ms = record.duration_ms;
+            stats.recent.unshift(record);
+            if (stats.recent.length > RECENT_LIMIT) stats.recent.length = RECENT_LIMIT;
+            try { localStorage.setItem(GUEST_STATS_KEY, JSON.stringify(stats)); } catch (e) {}
+        }
+
+        function clearGuestStats() {
+            try { localStorage.removeItem(GUEST_STATS_KEY); } catch (e) {}
+        }
+
+        function formatDuration(ms) {
+            if (ms === null || ms === undefined) return "—";
+            const totalSec = Math.round(ms / 1000);
+            const m = Math.floor(totalSec / 60);
+            const s = totalSec % 60;
+            return `${m}:${s.toString().padStart(2, "0")}`;
+        }
+
+        function formatRelative(iso) {
+            const then = new Date(iso).getTime();
+            const diff = Date.now() - then;
+            if (diff < 60000) return "just now";
+            if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
+            if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`;
+            const days = Math.floor(diff / 86400000);
+            if (days < 30) return `${days}d ago`;
+            return new Date(iso).toLocaleDateString();
+        }
+
+        function levelLabel(level) {
+            return level.charAt(0).toUpperCase() + level.slice(1);
+        }
+
+        function shuffle(arr) {
+            for (let i = arr.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [arr[i], arr[j]] = [arr[j], arr[i]];
+            }
+            return arr;
+        }
+
+        function pickEmojis() {
+            return shuffle([...EMOJI_POOL]).slice(0, pairCount);
+        }
+
+        function buildDeck() {
+            const emojis = pickEmojis();
+            const deck = shuffle([...emojis, ...emojis]);
+            return deck;
+        }
+
+        function makeCard(emoji, index) {
+            const card = document.createElement("div");
+            card.className = "card";
+            card.dataset.emoji = emoji;
+            card.setAttribute("role", "button");
+            card.setAttribute("tabindex", "0");
+            card.setAttribute("aria-label", `Card ${index + 1}, face down`);
+            card.innerHTML = `
+                <div class="card-inner">
+                    <div class="card-face card-back" aria-hidden="true"></div>
+                    <div class="card-face card-front">${emoji}</div>
+                </div>
+            `;
+            card.addEventListener("click", () => handleFlip(card));
+            card.addEventListener("keydown", (e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    handleFlip(card);
+                }
+            });
+            return card;
+        }
+
+        function handleFlip(card) {
+            if (lockBoard) return;
+            if (card.classList.contains("flipped")) return;
+            if (card.classList.contains("matched")) return;
+
+            card.classList.add("flipped");
+            card.setAttribute("aria-label", `Card showing ${card.dataset.emoji}`);
+
+            if (!firstCard) {
+                firstCard = card;
+                if (gameStartMs === null) gameStartMs = performance.now();
+                return;
+            }
+
+            moves += 1;
+            movesEl.textContent = moves;
+
+            if (firstCard.dataset.emoji === card.dataset.emoji) {
+                firstCard.classList.add("matched");
+                card.classList.add("matched");
+                firstCard = null;
+                matched += 1;
+                matchedEl.textContent = matched;
+                if (matched === pairCount) {
+                    const durationMs = gameStartMs === null ? 0 : Math.round(performance.now() - gameStartMs);
+                    const record = {
+                        level: currentLevel,
+                        pairs: pairCount,
+                        moves: moves,
+                        duration_ms: durationMs,
+                        completed_at: new Date().toISOString()
+                    };
+                    if (me && me.authenticated) {
+                        postGame(record);
+                    } else {
+                        saveGameToGuestStats(record);
+                    }
+                    setTimeout(() => showWin(durationMs), 600);
+                }
+            } else {
+                lockBoard = true;
+                const a = firstCard;
+                const b = card;
+                firstCard = null;
+                setTimeout(() => {
+                    a.classList.remove("flipped");
+                    b.classList.remove("flipped");
+                    a.setAttribute("aria-label", "Card face down");
+                    b.setAttribute("aria-label", "Card face down");
+                    lockBoard = false;
+                }, 900);
+            }
+        }
+
+        function showWin(durationMs) {
+            const time = formatDuration(durationMs);
+            winMessageEl.textContent = `Completed in ${moves} move${moves === 1 ? "" : "s"} · ${time}.`;
+            winEl.classList.add("show");
+        }
+
+        function applyLevel(level) {
+            currentLevel = level;
+            const { cols, pairs } = LEVELS[level];
+            pairCount = pairs;
+            boardEl.className = `board cols-${cols}`;
+            boardEl.style.setProperty("--cols", cols);
+            totalPairsEl.textContent = pairs;
+            difficultyEl.querySelectorAll("button").forEach((btn) => {
+                const isActive = btn.dataset.level === level;
+                btn.classList.toggle("active", isActive);
+                btn.setAttribute("aria-selected", isActive ? "true" : "false");
+            });
+        }
+
+        function newGame() {
+            winEl.classList.remove("show");
+            firstCard = null;
+            lockBoard = false;
+            moves = 0;
+            matched = 0;
+            gameStartMs = null;
+            movesEl.textContent = "0";
+            matchedEl.textContent = "0";
+            boardEl.innerHTML = "";
+            const deck = buildDeck();
+            deck.forEach((emoji, i) => boardEl.appendChild(makeCard(emoji, i)));
+        }
+
+        difficultyEl.addEventListener("click", (e) => {
+            const btn = e.target.closest("button[data-level]");
+            if (!btn) return;
+            if (btn.dataset.level === currentLevel) return;
+            applyLevel(btn.dataset.level);
+            newGame();
+        });
+
+        newGameBtn.addEventListener("click", newGame);
+        playAgainBtn.addEventListener("click", newGame);
+
+        document.getElementById("theme-toggle").addEventListener("click", function () {
+            var root = document.documentElement;
+            var next = root.getAttribute("data-theme") === "dark" ? "light" : "dark";
+            if (next === "dark") {
+                root.setAttribute("data-theme", "dark");
+            } else {
+                root.removeAttribute("data-theme");
+            }
+            try { localStorage.setItem("theme", next); } catch (e) {}
+        });
+
+        // --- stats modal ---
+        const statsModal = document.getElementById("stats-modal");
+        const statsBody = document.getElementById("stats-body");
+        const statsDisclaimer = document.querySelector("#stats-modal .disclaimer");
+
+        function renderGuestStats() {
+            const stats = loadGuestStats();
+            const totals = stats ? stats.totals_by_level : {};
+            const recent = stats ? stats.recent : [];
+            renderStatsCommon(totals, recent);
+        }
+
+        async function renderServerStats() {
+            statsBody.innerHTML = `<div class="stats-empty">Loading…</div>`;
+            try {
+                const [statsRes, gamesRes] = await Promise.all([
+                    fetch("/api/stats").then(r => r.json()),
+                    fetch("/api/games?limit=10").then(r => r.json())
+                ]);
+                renderStatsCommon(statsRes.stats || {}, gamesRes.games || []);
+            } catch (e) {
+                statsBody.innerHTML = `<div class="stats-empty">Couldn't load stats. Try again later.</div>`;
+            }
+        }
+
+        function renderStats() {
+            if (me && me.authenticated) {
+                statsDisclaimer.innerHTML = `Signed in as <strong>${escapeHtml(me.email)}</strong>. Stats sync across devices.`;
+                renderServerStats();
+            } else {
+                statsDisclaimer.textContent = "Stats are saved in this browser only. They won't sync across devices or survive clearing your browser data. Sign in to sync.";
+                renderGuestStats();
+            }
+        }
+
+        function escapeHtml(s) {
+            return String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));
+        }
+
+        function renderStatsCommon(totals, recent) {
+            const hasAnyGames = Object.values(totals).some((t) => t && t.games > 0);
+
+            const levelOrder = ["beginner", "intermediate", "expert", "wizard"];
+            let html = "";
+            if (hasAnyGames) {
+                html += `<table class="stats-table"><thead><tr>
+                    <th>Level</th><th class="num">Games</th><th class="num">Best moves</th><th class="num">Best time</th>
+                </tr></thead><tbody>`;
+                for (const level of levelOrder) {
+                    const s = totals[level] || emptyLevelStats();
+                    html += `<tr>
+                        <td>${levelLabel(level)}</td>
+                        <td class="num">${s.games}</td>
+                        <td class="num">${s.best_moves === null ? "—" : s.best_moves}</td>
+                        <td class="num">${formatDuration(s.best_duration_ms)}</td>
+                    </tr>`;
+                }
+                html += `</tbody></table>`;
+
+                if (recent.length) {
+                    html += `<div class="recent-heading">Recent games</div><ul class="recent-list">`;
+                    for (const g of recent.slice(0, 10)) {
+                        html += `<li>
+                            <span>${levelLabel(g.level)} · ${g.moves} moves · ${formatDuration(g.duration_ms)}</span>
+                            <span class="when">${formatRelative(g.completed_at)}</span>
+                        </li>`;
+                    }
+                    html += `</ul>`;
+                }
+            } else {
+                html = `<div class="stats-empty">No games completed yet. Finish a round and it'll show up here.</div>`;
+            }
+            statsBody.innerHTML = html;
+        }
+
+        function openStats() { renderStats(); statsModal.classList.add("show"); }
+        function closeStats() { statsModal.classList.remove("show"); }
+
+        document.getElementById("stats-btn").addEventListener("click", openStats);
+        document.getElementById("stats-close").addEventListener("click", closeStats);
+        const statsClearBtn = document.getElementById("stats-clear");
+        statsClearBtn.addEventListener("click", function () {
+            if (me && me.authenticated) return;
+            if (confirm("Clear all saved stats for this browser?")) {
+                clearGuestStats();
+                renderStats();
+            }
+        });
+        statsModal.addEventListener("click", (e) => { if (e.target === statsModal) closeStats(); });
+
+        // --- tip jar modal ---
+        const tipModal = document.getElementById("tip-modal");
+        const tipCopy = document.getElementById("tip-copy");
+
+        function openTip() { tipModal.classList.add("show"); }
+        function closeTip() {
+            tipModal.classList.remove("show");
+            tipCopy.textContent = "Copy";
+            tipCopy.classList.remove("copied");
+        }
+
+        document.getElementById("tip-jar-btn").addEventListener("click", openTip);
+        document.getElementById("tip-close").addEventListener("click", closeTip);
+        tipModal.addEventListener("click", (e) => { if (e.target === tipModal) closeTip(); });
+
+        tipCopy.addEventListener("click", async function () {
+            const email = document.getElementById("tip-email").textContent.trim();
+            try {
+                await navigator.clipboard.writeText(email);
+                tipCopy.textContent = "Copied!";
+                tipCopy.classList.add("copied");
+                setTimeout(() => {
+                    tipCopy.textContent = "Copy";
+                    tipCopy.classList.remove("copied");
+                }, 1800);
+            } catch (e) {
+                tipCopy.textContent = "Select to copy";
+            }
+        });
+
+        // --- close modals on Escape ---
+        document.addEventListener("keydown", (e) => {
+            if (e.key === "Escape") {
+                closeStats();
+                closeTip();
+            }
+        });
+
+        // --- auth ---
+        const authBtn = document.getElementById("auth-btn");
+        const authMenu = document.getElementById("auth-menu");
+        const menuDisplayName = document.getElementById("menu-display-name");
+        const menuEmail = document.getElementById("menu-email");
+        const signinModal = document.getElementById("signin-modal");
+        const providerList = document.getElementById("provider-list");
+
+        const PROVIDER_META = {
+            google: {
+                label: "Continue with Google",
+                icon: `<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#4285f4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34a853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.99.66-2.25 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84A11 11 0 0 0 12 23z"/><path fill="#fbbc05" d="M5.84 14.1A6.6 6.6 0 0 1 5.5 12c0-.73.13-1.44.34-2.1V7.07H2.18A11 11 0 0 0 1 12c0 1.78.43 3.46 1.18 4.93l3.66-2.83z"/><path fill="#ea4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1A11 11 0 0 0 2.18 7.07l3.66 2.83C6.71 7.31 9.14 5.38 12 5.38z"/></svg>`
+            }
+        };
+
+        function initialsOf(name) {
+            if (!name) return "?";
+            const clean = name.replace(/\([^)]*\)/g, "").trim();
+            const parts = clean.split(/[\s@]/).filter(Boolean);
+            if (!parts.length) return ((name.match(/[A-Za-z0-9]/) || ["?"])[0]).toUpperCase();
+            const first = (parts[0].match(/[A-Za-z0-9]/) || [""])[0];
+            const last = parts.length > 1 ? (parts[parts.length - 1].match(/[A-Za-z0-9]/) || [""])[0] : "";
+            return ((first + last).toUpperCase() || "?");
+        }
+
+        function displayLabel(name) {
+            // Drop parenthetical aliases like "Chris Clark (X_minus_T)" → "Chris Clark"
+            return (name || "").replace(/\([^)]*\)/g, "").trim() || name || "";
+        }
+
+        function renderAuthButton() {
+            if (!me) { authBtn.hidden = true; return; }
+            authBtn.hidden = false;
+            if (me.authenticated) {
+                const label = displayLabel(me.display_name || me.email);
+                authBtn.classList.add("authed");
+                authBtn.innerHTML = `<span class="avatar">${escapeHtml(initialsOf(me.display_name || me.email))}</span><span class="auth-label">${escapeHtml(label)}</span>`;
+                menuDisplayName.textContent = me.display_name || label || me.email;
+                menuEmail.textContent = me.email;
+                statsClearBtn.hidden = true;
+            } else {
+                const hasAny = (me.providers || []).length > 0;
+                if (!hasAny) { authBtn.hidden = true; return; }
+                authBtn.classList.remove("authed");
+                authBtn.textContent = "Sign in";
+                statsClearBtn.hidden = false;
+            }
+        }
+
+        function openSignIn() {
+            if (!me || !me.providers || !me.providers.length) return;
+            providerList.innerHTML = me.providers.map(p => {
+                const meta = PROVIDER_META[p] || { label: `Continue with ${p}`, icon: "" };
+                return `<a class="provider-btn" href="/login/${p}">${meta.icon}<span>${meta.label}</span></a>`;
+            }).join("");
+            signinModal.classList.add("show");
+        }
+        function closeSignIn() { signinModal.classList.remove("show"); }
+
+        authBtn.addEventListener("click", () => {
+            if (me && me.authenticated) {
+                authMenu.classList.toggle("show");
+            } else {
+                openSignIn();
+            }
+        });
+        document.getElementById("signin-close").addEventListener("click", closeSignIn);
+        signinModal.addEventListener("click", (e) => { if (e.target === signinModal) closeSignIn(); });
+
+        document.addEventListener("click", (e) => {
+            if (!authMenu.contains(e.target) && !authBtn.contains(e.target)) authMenu.classList.remove("show");
+        });
+
+        document.getElementById("menu-signout").addEventListener("click", async () => {
+            try { await fetch("/logout", { method: "POST" }); } catch (e) {}
+            me = { authenticated: false, providers: (me && me.providers) || [] };
+            authMenu.classList.remove("show");
+            renderAuthButton();
+        });
+
+        // --- game -> server sync ---
+        async function postGame(record) {
+            try {
+                await fetch("/api/games", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(record)
+                });
+            } catch (e) {
+                // if network fails, keep a local copy so nothing is lost
+                saveGameToGuestStats(record);
+            }
+        }
+
+        // --- guest import flow ---
+        const importModal = document.getElementById("import-modal");
+        const importCount = document.getElementById("import-count");
+
+        function maybeOfferImport() {
+            if (!me || !me.authenticated || !me.just_signed_in) return;
+            const guest = loadGuestStats();
+            if (!guest || !guest.recent || !guest.recent.length) return;
+            importCount.textContent = guest.recent.length;
+            importModal.classList.add("show");
+        }
+
+        document.getElementById("import-discard").addEventListener("click", () => {
+            clearGuestStats();
+            importModal.classList.remove("show");
+        });
+        document.getElementById("import-accept").addEventListener("click", async () => {
+            const guest = loadGuestStats();
+            if (!guest || !guest.recent) { importModal.classList.remove("show"); return; }
+            try {
+                await fetch("/api/games/import", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ games: guest.recent })
+                });
+                clearGuestStats();
+            } catch (e) {}
+            importModal.classList.remove("show");
+        });
+
+        async function loadMe() {
+            try {
+                const res = await fetch("/api/me");
+                me = await res.json();
+            } catch (e) {
+                me = { authenticated: false, providers: [] };
+            }
+            renderAuthButton();
+            maybeOfferImport();
+        }
+        loadMe();
+
+        // --- GDPR / cookie banner ---
+        const cookieBanner = document.getElementById("cookie-banner");
+        function hasConsent() {
+            try { return !!localStorage.getItem("cookie_consent"); } catch (e) { return true; }
+        }
+        function setConsent(value) {
+            try { localStorage.setItem("cookie_consent", value); } catch (e) {}
+            cookieBanner.classList.remove("show");
+        }
+        if (!hasConsent()) cookieBanner.classList.add("show");
+        document.getElementById("cookie-accept").addEventListener("click", () => setConsent("accepted"));
+        document.getElementById("cookie-essential").addEventListener("click", () => setConsent("essential"));
+
+        applyLevel(currentLevel);
+        newGame();
+    </script>
+</body>
+</html>
